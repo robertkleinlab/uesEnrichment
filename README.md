@@ -1,8 +1,8 @@
-# uesEnrichmentDev
-### James Hayes
-### PhD Candidate, Weill Cornell Graduate School of Medical Sciences, New York, NY
-### Lab PI: Robert Klein, PhD, at Icahn School of Medicine at Mount Sinai, New York, NY
-### Updated 2015/04/06
+# uesEnrichment
+- James Hayes
+- PhD Candidate, Weill Cornell Graduate School of Medical Sciences, New York, NY
+- Lab PI: Robert Klein, PhD, at Icahn School of Medicine at Mount Sinai, New York, NY
+- Updated 2015/04/06
 
 ## ues (Uncovering Enrichment through Simulation) Algorithm Development
 The UES (Uncovering Enrichment through Simulation) algorithm was written to help interpret results from genome-wide association studies (GWAS) using publicly available datasets. Our manuscript is currently under review and is available on the [bioRxvi](http://biorxiv.org) preprint server. The published version of the algorithm can be found at the [Klein lab website](http://research.mssm.edu/kleinlab/ues/).
