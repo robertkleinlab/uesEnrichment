@@ -9,6 +9,7 @@ The UES (Uncovering Enrichment through Simulation) algorithm was written to help
 
 ## Executing the algorithm
 UES is comprised of scripts written in bash (3.2.53(1)-release) and PERL  (v5.18.2) scripts. It relies on the following programs:
+
     • tabix  (v0.2.5)
     • bedtools (v2.20.1)
 These programs need to be installed and added to your path in order for UES to operate properly.
@@ -38,6 +39,7 @@ Options: UES requires 3 types of options: the original input SNPs, a chip code, 
 
 Output:
 UES creates the following folders within the directory that you ran the analysis: 
+
      BEDfiles/   Contains the bed (6 column format: chromosome, start position, stop position, rsid, score, strand) for the original input SNPs and matched random SNPs.
      dataFiles/  Contains the files that have the SNP data
      ldBedFiles/ Contains the bed (6 column format) for the original and matched SNP lists, along with all of the LD partners. Note, column 6 contains the original SNP for which the current SNP is an LD partner.
@@ -50,7 +52,8 @@ Executing the script: The script should be run from the folder where you have th
 Example Command:
 The SNP list for Hayes et al. is provided. In order to proceed, move to the following directory: ues/test-lymphoma/
 The ues bash script is executable. Run the following command:
-../ues -i lymphomaCllSnps.txt –C -n 10000
+
+	../ues -i lymphomaCllSnps.txt –C -n 10000
 
 Note: this may take a while to run. For testing purposes, reduce -n to increase speed.
 
@@ -67,6 +70,7 @@ Options:
       -o <NAME>  Output name
 
 Generated Output:
+
       <NAME>.output             Folder containing the intersection files for the collection of random SNPs and the original SNPs.
       summaryStats.<NAME>.txt   This file contains the enrichment calculation. There are 5 columns in the file.
       Track:                    Name of the track against which the intersection was performed.
@@ -82,6 +86,7 @@ NOTE: Please provide the full path to the output file.  Using "../" may cause Be
 	../uesSingleIntersect -f [DNaseFolder]wgEncodeAwgDnaseUwdukeGm12878UniPk.narrowPeak.gz -o lymphomaTest-singleIntersect
 
 Output:
+
 	Track     OrigLoci     RandLoci>=Orig     RandAvg     pValue
 	wgEncodeAwgDnaseUwdukeGm12878UniPk.narrowPeak.gz     16     0     4.521     <0.0001
 
@@ -89,8 +94,9 @@ Output:
 ### uesBatchIntersect:
 
 Options:
-      -f <FILE>  Full path to the folder containing the genomic interval track files
-      -o <NAME>  Output name
+
+	-f <FILE>  Full path to the folder containing the genomic interval track files
+	-o <NAME>  Output name
 
 Generated Output:
 The output is essentially identical to what was previously described above.  The resultant summaryStats file is sorted by pValue in ascending order.
