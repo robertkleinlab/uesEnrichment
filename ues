@@ -1,0 +1,173 @@
+#!/bin/bash
+
+ARGCHECK=0
+
+CHIP=
+CHIPPATH=
+CHIPCHECK=0
+
+INFILE=
+INCHECK=0
+
+NUMRAND=0
+RANDCHECK=0
+
+
+echo
+echo "Beginning run. Start time: "
+date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S%n"
+
+directory="$(dirname "$0")"
+
+while getopts ":hAICTHU:n:i:" opt; do
+  case $opt in
+    h)
+      less $directory/uesManual.txt
+      exit 1
+      ;;
+    A)
+      let CHIPCHECK=$CHIPCHECK+1
+      CHIP="Affy SNP6";
+      CHIPPATH=$directory/resources/snpLists/SNPs.AffySnp6.1000GenomesSNPs.txt
+      let ARGCHECK=1
+      ;;
+    I)
+      let CHIPCHECK=$CHIPCHECK+1
+      CHIP="Illumina Omni1-Quad and Human-1M"
+      CHIPPATH=$directory/resources/snpLists/SNPs.Illumina.HumanOmni1-Quad.Human1M-Duov3.1000GenomesSNPs.txt
+      let ARGCHECK=1
+      ;;
+    C)
+      let CHIPCHECK=$CHIPCHECK+1
+      CHIP="Affy & Illumina Combined"
+      CHIPPATH=$directory/resources/snpLists/SNPs.AffyIllumina.1000genomes.txt
+      let ARGCHECK=1
+      ;;
+    T)
+      let CHIPCHECK=$CHIPCHECK+1
+      CHIP="1000 Genomes"
+      CHIPPATH=$directory/resources/snpLists/SNPs.1000genomes.txt
+      let ARGCHECK=1
+      ;;
+    H)
+      let CHIPCHECK=$CHIPCHECK+1
+      CHIP="HapMap Phase 3"
+      CHIPPATH=$directory/resources/snpLists/SNPs.HapMapPhase3.txt
+      let ARGCHECK=1
+      ;;
+    U)
+      let CHIPCHECK=$CHIPCHECK+1
+      CHIP=$OPTARG
+      if [ ! -f $CHIP ]
+      then
+      	echo "ERROR: \"$CHIP\" cannot be opened. Please reconfirm input for -U option." >&2
+      	exit 1
+      fi
+      CHIPPATH=$OPTARG
+      let ARGCHECK=1
+      ;;
+    n)
+      if [[ $OPTARG  =~ ^[0-9]+$ ]]
+      then
+      	let RANDCHECK=$RANDCHECK+1
+      	NUMRAND=$OPTARG
+      	let ARGCHECK=1
+      else
+      	echo "ERROR: $OPTARG is not a positive integer." >&2
+      	exit 1
+      fi
+      ;;
+    i)
+      INFILE=$OPTARG
+      if [ ! -f $INFILE ]
+      then
+      	echo "ERROR: \"$INFILE\" cannot be opened. Please provide a different file for -i." >&2
+      	exit 1
+      fi
+      let INCHECK=$INCHECK+1
+      let ARGCHECK=1
+      ;;
+    \?)
+      echo "ERROR: -$OPTARG is an invalid option." >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
+
+if ((!ARGCHECK)); then
+  echo
+  echo "ERROR: UES requires options and arguments. " >&2
+  echo "       -A|I|C|T|H|U (Note: -U requires <FILE>)     -n <NUMBER>     -i <FILE>" >&2
+  echo 
+  echo "For more help, use the -h flag to open the manual." >&2
+  echo
+  exit 1
+fi
+
+if [ $CHIPCHECK -eq 0 ]  || [ $CHIPCHECK -gt 1 ] || [ $RANDCHECK -ne 1 ] || [ $INCHECK -ne 1 ]
+then
+	if [ $CHIPCHECK -eq 0 ]
+	then
+		echo "ERROR: Please provide a valid chip code." >&2
+		echo "Required chip code:    -A for Affymetrix    -I for Illumina    -C for combined Affy & Illumina    -T for 1000Genomes    -H for HapMapPhase3    -U for User Defined; provide a file." >&2
+		exit 1
+	elif [ $CHIPCHECK -gt 1 ]
+	then
+		echo "ERROR: Please only provide one chip code." >&2
+		echo "Required chip code:    -A for Affymetrix    -I for Illumina    -C for combined Affy & Illumina    -T for 1000Genomes    -H for HapMapPhase3    -U for User Defined; provide a file." >&2
+		exit 1
+	elif [ $RANDCHECK -ne 1 ]
+	then
+		echo "ERROR: Please provide a valid number of random samples. Use option -n <NUMBER>">&2
+		exit 1 
+	elif [ $INCHECK -ne 1 ]
+	then
+		echo "ERROR: Please provide an input file. -i <FILE>">&2
+		exit 1 
+	else
+		echo "Unknown ERROR: Please verify your input.">&2
+		exit 1
+	fi
+fi
+
+
+#Essentially, this block of code gets the name of the file, so it's not a generic file name at the end.
+infile=$INFILE
+OIFS=$IFS
+IFS='.' read -a filename <<< "${infile}"
+grep -o "/" <<< "${filename[0]}" | wc -l > numFile1
+lineNum1=$(head -n 1 numFile1)
+rm numFile1
+IFS='/' read -a fileHeader <<< "${filename[0]}"
+name=${fileHeader[$lineNum1]}
+IFS=$OIFS
+mkdir BEDfiles
+mkdir dataFiles
+mkdir ldBedFiles
+mkdir analysis
+
+echo -e "Input SNPs:\t\t$infile" 
+echo -e "File name:\t\t$name"
+echo -e "Random SNPs:\t\t$CHIP"
+echo -e "Random Files:\t\t$NUMRAND"
+echo -e "File directory:\t\t$PWD"
+echo -e "Script location:\t$directory"
+echo 
+echo
+
+perl $directory/resources/scripts/01-MakeBedAndBinsTabix.pl $infile $CHIPPATH $NUMRAND $directory || echo $?
+echo "Finished step 1."
+echo "The .bed files for the original SNP set and matched-ramdons are in the BEDfiles directory."
+echo
+echo "Finding the LD partners for each set of SNPs." 
+perl $directory/resources/scripts/02-FindLDPartnersTabix.pl $directory
+echo "Finished step 2. These new files can be found in the ldBedFiles directory."
+echo
+
+
+echo "Script complete. Ending time:"
+date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S%n"

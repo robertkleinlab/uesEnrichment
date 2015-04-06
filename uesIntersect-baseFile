@@ -1,0 +1,50 @@
+#! /bin/bash
+
+trackPath=$1
+iFile=$2
+userout=../analysis/summaryStats.$3.txt
+
+mkdir analysis/$3.output
+cd ldBedFiles/
+
+echo "Processing intersection analysis for $iFile."
+
+for i in *-randomSNPs-*	
+do
+	# this line calculates the number of loci that overlap with a feature region.
+	intersectBed -a $i -b $trackPath$iFile | cut -f6 | sort | uniq -c | wc -l >> ../analysis/$3.output/randomSnps.$iFile.intersect.out.temp
+done
+
+sort -nr ../analysis/$3.output/randomSnps.$iFile.intersect.out.temp > ../analysis/$3.output/randomSnps.$iFile.intersect.out
+rm ../analysis/$3.output/randomSnps.$iFile.intersect.out.temp
+
+intersectBed -a *.original.bed -b $trackPath$iFile > ../analysis/$3.output/originalSnps.$iFile.intersect.out
+
+randAvg=$(awk '{ s += $1 } END { print s/NR }' < ../analysis/$3.output/randomSnps.$iFile.intersect.out)
+originalLoci=$(cut -f6 ../analysis/$3.output/originalSnps.$iFile.intersect.out | sort | uniq -c | wc -l)
+totalFiles=$(ls *-randomSNPs-* | wc -l)
+
+let randLoci=0
+
+while read line
+do
+	number=$line
+	if [[ $number -ge $originalLoci ]]
+	then
+		let randLoci=randLoci+1 
+	else
+		break
+	fi
+done < ../analysis/$3.output/randomSnps.$iFile.intersect.out
+
+pVal=$(echo "$randLoci $totalFiles" | awk '{print $1/$2}')
+
+if [ "$pVal" == "0" ]
+then
+	lowerBound=$(echo "1 $totalFiles" | awk '{print $1/$2}')
+	pVal="<$lowerBound"
+fi
+	
+echo "$iFile	$originalLoci	$randLoci	$randAvg	$pVal" >> $userout.temp
+
+cd ..

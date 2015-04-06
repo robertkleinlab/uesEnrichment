@@ -1,0 +1,120 @@
+#! /bin/bash
+
+ARGCHECK=0
+
+TRACKPATH=
+TRACKPATHCHECK=0
+
+TRACK=
+TRACKCHECK=0
+
+OUTFILE=
+OUTNAME=
+OUTCHECK=0
+
+while getopts ":f:o:" opt; do
+  case $opt in
+    f)
+      TRACKPATH=$OPTARG
+      TRACK=$(basename "$TRACKPATH")
+      let TRACKPATHCHECK=$TRACKPATHCHECK+1
+      let ARGCHECK=1
+      ;;
+    o)
+      OUTNAME=$OPTARG
+      OUTFILE=../analysis/summaryStats.$OUTNAME.txt
+      let ARGCHECK=1
+      let OUTCHECK=$OUTCHECK+1      
+      ;;
+    \?)
+      echo "ERROR: -$OPTARG is an invalid option." >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
+
+if ((!ARGCHECK)); then
+  echo
+  echo "ERROR: UES-Single-Intersect requires options and arguments." >&2
+  echo "There are 2 options: -f <FILE> -o <NAME>" >&2
+  echo
+  exit 1
+fi
+
+if [ $TRACKPATHCHECK -ne 1 ] || [ $OUTCHECK -ne 1 ]
+then
+	if [ $TRACKPATHCHECK -eq 0 ]
+	then
+		echo "ERROR: Please provide the full path to a genomic track file. Use the option -f" >&2
+		exit 1
+	elif [ $TRACKPATHCHECK -gt 1 ]
+	then
+		echo "ERROR: Please provide only one genomic track file. Use the option -f" >&2
+		exit 1
+	elif [ $OUTCHECK -eq 0 ]
+	then
+		echo "ERROR: Please provide an output name. Use the option -o">&2
+		exit 1 
+	elif [ $OUTCHECK -gt 1 ]
+	then
+		echo "ERROR: Please provide only one output name. Use the option -o">&2
+		exit 1 
+	else
+		echo "Unknown ERROR: Please verify your input. There are 2 options: -f <FILE> -o <NAME>">&2
+		exit 1
+	fi
+fi
+
+mkdir analysis/$OUTNAME.output
+cd ldBedFiles/
+
+echo
+echo "Processing intersection analysis for $TRACK."
+
+for i in *-randomSNPs-*	
+do
+	# this line calculates the number of loci that overlap with a feature region.
+	intersectBed -a $i -b $TRACKPATH | cut -f6 | sort | uniq -c | wc -l >> ../analysis/$OUTNAME.output/randomSnps.$TRACK.intersect.out.temp
+done
+
+sort -nr ../analysis/$OUTNAME.output/randomSnps.$TRACK.intersect.out.temp > ../analysis/$OUTNAME.output/randomSnps.$TRACK.intersect.out
+rm ../analysis/$OUTNAME.output/randomSnps.$TRACK.intersect.out.temp
+
+intersectBed -a *.original.bed -b $TRACKPATH > ../analysis/$OUTNAME.output/originalSnps.$TRACK.intersect.out
+
+randAvg=$(awk '{ s += $1 } END { print s/NR }' < ../analysis/$OUTNAME.output/randomSnps.$TRACK.intersect.out)
+originalLoci=$(cut -f6 ../analysis/$OUTNAME.output/originalSnps.$TRACK.intersect.out | sort | uniq -c | wc -l)
+totalFiles=$(ls *-randomSNPs-* | wc -l)
+
+let randLoci=0
+
+while read line
+do
+	number=$line
+	if [[ $number -ge $originalLoci ]]
+	then
+		let randLoci=randLoci+1 
+	else
+		break
+	fi
+done < ../analysis/$OUTNAME.output/randomSnps.$TRACK.intersect.out
+
+pVal=$(echo "$randLoci $totalFiles" | awk '{print $1/$2}')
+
+if [ "$pVal" == "0" ]
+then
+	lowerBound=$(echo "1 $totalFiles" | awk '{print $1/$2}')
+	pVal="<$lowerBound"
+fi
+	
+echo -e "Track\tOrigLoci\tRandLoci>=Orig\tRandAvg\tpValue" > $OUTFILE
+echo "$TRACK	$originalLoci	$randLoci	$randAvg	$pVal" >> $OUTFILE
+
+cd ..
+
+echo "Analysis complete. Output can be found at analysis/summaryStats.$OUTNAME.txt"
+echo

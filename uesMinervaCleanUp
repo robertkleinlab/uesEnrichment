@@ -1,0 +1,15 @@
+#!/bin/bash
+
+#
+# This script takes in the summaryStats.*.temp file, labrels, the columns, sorts, and removes the .temp from the end.
+# It requires one argument: summaryStats.*.temp
+#
+# Note, it will result in a new file and delete the .temp file.
+#
+
+INFILE=$1
+OUTFILE=${INFILE%.*}
+
+echo -e "AnnotationTrack\tOrigLoci\tRand>=Orig\tRandomAvg\tpValue" >> $OUTFILE
+sort -nk5 $INFILE >> $OUTFILE
+rm $INFILE

@@ -1,0 +1,168 @@
+#!/bin/bash
+
+# # # # # # # # # 
+#
+# This script will make the proper LSF files to breakup the intersection analysis to run on Minerva.
+# Note, you need to combine all the output at the end.
+#
+# Argument 1: Path to the files you wish to intersect.
+# Argument 2: Output File name.
+#
+# This script was modified for submission to the scavenger queue.
+#
+# Modified 12/20/14
+#
+# # # # # # # # #
+
+ARGCHECK=0
+
+TRACKPATH=
+TRACKPATHCHECK=0
+
+OUTFILE=
+OUTNAME=
+OUTCHECK=0
+
+LSFQUEUE=
+LSFQUEUECHECK=0
+
+PROJECTACCT=
+PROJECTACCTCHECK=0
+
+DIRECTORY=$(pwd)
+SCRIPTDIR="$(dirname "$0")"
+
+echo
+echo "Start time: "
+date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"
+
+while getopts ":lapf:o:P:" opt; do
+  case $opt in
+    f)
+      TRACKPATH=$OPTARG
+      let TRACKPATHCHECK=$TRACKPATHCHECK+1
+      let ARGCHECK=1
+      ;;
+    o)
+      OUTNAME=$OPTARG
+      OUTFILE=../analysis/summaryStats.$OUTNAME.txt
+      let ARGCHECK=1
+      let OUTCHECK=$OUTCHECK+1      
+      ;;
+	l)
+          LSFQUEUE="low"
+          let LSFQUEUECHECK=LSFQUEUECHECK+1
+          let ARGCHECK=1
+          ;;
+        a)
+          LSFQUEUE="alloc"
+          let LSFQUEUECHECK=LSFQUEUECHECK+1
+          let ARGCHECK=1
+          ;;
+        p)
+          LSFQUEUE="premium"
+          let LSFQUEUECHECK=LSFQUEUECHECK+1
+          let ARGCHECK=1
+          ;;
+    P)
+      let PROJECTACCTCHECK=$PROJECTACCTCHECK+1
+      PROJECTACCT=$OPTARG
+      let ARGCHECK=1
+      ;;
+    \?)
+      echo "ERROR: -$OPTARG is an invalid option." >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
+
+if ((!ARGCHECK)); then
+  echo
+  echo "ERROR: UES-BatchIntersect requires a path to the genomic interval track files, an output name, project account, and Minerva queue." >&2
+  echo "There are 2 options: -f <FILE> -o <NAME> -l|a|p -P <ACCOUNT>" >&2
+  echo
+  exit 1
+fi
+
+if [ $TRACKPATHCHECK -ne 1 ]  || [ $OUTCHECK -ne 1 ] || [ $LSFQUEUECHECK -ne 1 ] || [ $PROJECTACCTCHECK -ne 1 ]
+then
+	if [ $TRACKPATHCHECK -eq 0 ]
+	then
+		echo "ERROR: Track path required. Use the option -f" >&2
+		exit 1
+	elif [ $TRACKPATHCHECK -gt 1 ]
+	then
+		echo "ERROR: Please provide only one track path. Use the option -f" >&2
+		exit 1
+	elif [ $OUTCHECK -eq 0 ]
+	then
+		echo "ERROR: Please provide a name for output. Use the option -o">&2
+		exit 1 
+	elif [ $OUTCHECK -gt 1 ]
+	then
+		echo "ERROR: Please provide only 1 name for output. Use the option -o">&2
+		exit 1 
+	elif [ $LSFQUEUECHECK -ne 1 ] 
+	then
+		echo "ERROR: Please provide one LSF queue. Use one flag: -l|a|p" >&2
+		exit 1
+	elif [ $PROJECTACCTCHECK -ne 1 ]
+	then
+		echo "ERROR: Please provide project account for Minerva. Use option -P <ACCOUNT>" >&2
+		exit 1
+	else
+		echo "Unknown ERROR: Please verify your input. There are 2 options: -f <FILE> -o <NAEME>" >&2
+		exit 1
+	fi
+fi
+
+
+echo
+echo "Intersection enrichment analysis to be performed on:"
+ls $TRACKPATH
+echo
+
+mkdir analysis/$OUTNAME.output
+mkdir lsfFiles-$OUTNAME
+
+cd $TRACKPATH
+
+for F in *
+do	
+	echo "#!/bin/bash" > $DIRECTORY/lsfFiles-$OUTNAME/$OUTNAME.$F.lsf
+	echo "#BSUB -J $OUTNAME.$F" >> $DIRECTORY/lsfFiles-$OUTNAME/$OUTNAME.$F.lsf
+	echo "#BSUB -q $LSFQUEUE" >> $DIRECTORY/lsfFiles-$OUTNAME/$OUTNAME.$F.lsf
+	echo "#BSUB -P $PROJECTACCT" >> $DIRECTORY/lsfFiles-$OUTNAME/$OUTNAME.$F.lsf
+	echo "#BSUB -n 1" >> $DIRECTORY/lsfFiles-$OUTNAME/$OUTNAME.$F.lsf
+	echo "#BSUB -W 12:00" >> $DIRECTORY/lsfFiles-$OUTNAME/$OUTNAME.$F.lsf
+	echo "#BSUB -oo $OUTNAME.$F.%J.stdout" >> $DIRECTORY/lsfFiles-$OUTNAME/$OUTNAME.$F.lsf
+	echo "#BSUB -eo $OUTNAME.$F.%J.stderr" >> $DIRECTORY/lsfFiles-$OUTNAME/$OUTNAME.$F.lsf
+	echo "#BSUB -L /bin/bash" >> $DIRECTORY/lsfFiles-$OUTNAME/$OUTNAME.$F.lsf
+	echo >> $DIRECTORY/lsfFiles-$OUTNAME/$OUTNAME.$F.lsf
+	echo "module load bedtools/2.21.0" >> $DIRECTORY/lsfFiles-$OUTNAME/$OUTNAME.$F.lsf
+	echo >> $DIRECTORY/lsfFiles-$OUTNAME/$OUTNAME.$F.lsf
+	echo "cd $DIRECTORY" >> $DIRECTORY/lsfFiles-$OUTNAME/$OUTNAME.$F.lsf
+	echo "bash $SCRIPTDIR/uesIntersect-baseFile $TRACKPATH $F $OUTNAME" >> $DIRECTORY/lsfFiles-$OUTNAME/$OUTNAME.$F.lsf
+	echo >> $DIRECTORY/lsfFiles-$OUTNAME/$OUTNAME.$F.lsf
+	echo "module unload bedtools/2.21.0 " >> $DIRECTORY/lsfFiles-$OUTNAME/$OUTNAME.$F.lsf
+done
+
+echo
+echo "Submitting all the lsfFiles to the $LSFQUEUE queue."
+
+cd $DIRECTORY/lsfFiles-$OUTNAME/ 
+for F in *.lsf
+do
+	bsub < $F
+done
+
+echo
+echo "All jobs submitted at:"
+date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"
+echo
+echo "Once all of the jobs have finished running, run the uesMinervaCleanup script to label and sort the summaryStats output file."
+echo
