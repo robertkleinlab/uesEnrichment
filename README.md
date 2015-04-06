@@ -62,6 +62,7 @@ These scripts must be run from the main folder of the ues run, containing the an
 ### uesSingleIntersect:
 
 Options:
+
       -f <FILE>  Full path to the genomic interval track file
       -o <NAME>  Output name
 
@@ -105,11 +106,13 @@ There are some scripts that are written specifically for use on the [Minerva clu
 
 ### uesMinerva
 This is virtually the same script as the main UES script. The only difference is that it has been written to distribue across Minerva to increase speed. There are 2 additional flags required beyond the flags for the normal algorithm run:
-	-P <Account>	project account
-	-l|a|p			specifies the queue where the jobs are submitted; low, alloc, and preimium, respectively
+
+    -P <Account>	project account
+    -l|a|p			specifies the queue where the jobs are submitted; low, alloc, and preimium, respectively
 	
 ### uesMinervaIntersect
 This script is run the same way as the uesSingleIntersect or uesBatchIntersect scripts. Run the script from the main folder of your UES run. It will send the output to the analysis/ folder. As with the uesMinerva script, there are 2 additional flags required:
+
     -P <Account>	project account
     -l|a|p			specifies the queue where the jobs are submitted; low, alloc, and preimium, respectively
 	
