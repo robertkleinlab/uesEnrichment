@@ -5,7 +5,7 @@
 - Updated 2015/04/06
 
 ## ues (Uncovering Enrichment through Simulation) Algorithm Development
-The UES (Uncovering Enrichment through Simulation) algorithm was written to help interpret results from genome-wide association studies (GWAS) using publicly available datasets. Our manuscript is currently under review and is available on the [bioRxvi](http://biorxiv.org) preprint server. The published version of the algorithm can be found at the [Klein lab website](http://research.mssm.edu/kleinlab/ues/).
+The UES (Uncovering Enrichment through Simulation) algorithm was written to help interpret results from genome-wide association studies (GWAS) using publicly available datasets. Our manuscript is currently under review and is available on the [bioRxvi](http://biorxiv.org) preprint server. The published version of the algorithm can be found at https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0139360.
 
 ## Executing the algorithm
 UES is comprised of scripts written in bash (3.2.53(1)-release) and PERL  (v5.18.2) scripts. It relies on the following programs:
@@ -16,7 +16,7 @@ These programs need to be installed and added to your path in order for UES to o
 
 UES uses pre-computed SNP that is included in the download for this package.  These file contain the following data: positional data, alleles, MAF, number of LD partners, and distance to TSS.  There is also a separate set of files containing the LD data for all the SNPs. All of these files are compressed, but they are still a large amount of data. 
 
-The most recent version of the UES pipeline can be downloaded: from http://research.mssm.edu/kleinlab/software/ues
+The most recent version of the UES pipeline with pre-computed LD files can be downloaded from https://kleinr08.u.hpc.mssm.edu/ues.tar.gz
 
 UES has 2 main bash scripts: making the matched-random SNPs (ues), and performing the intersection and calculating the enrichment score (uesSingleIntersect & uesBatchIntersect).  
 
